@@ -3,37 +3,39 @@
 // Modified by Christopher deWolf
 
 #include <stdio.h>		
-#include <stdlib.h>		// Std C library for utility fns & NULL defn
+#include <stdlib.h>		
 #include <unistd.h>		// System calls, also declares STDOUT_FILENO
 #include <errno.h>	    	// Pre-defined C error codes (in Linux)
 #include <string.h>		
-#include <sys/types.h>  	// Defns of system data types
-#include <sys/socket.h> 	// Unix Socket libraries for TCP, UDP, etc.
+#include <sys/types.h>  	// Definitions of system data types
+#include <sys/socket.h> 	// Unix Socket libraries for TCP, UDP ...
 #include <netinet/in.h> 	// INET constants
-#include <arpa/inet.h>  	// Conversion of IP addresses, etc.
-#include <netdb.h>		// Network database operations, incl. getaddrinfo
+#include <arpa/inet.h>  	// Conversion of IP addresses ...
+#include <netdb.h>		// Network database operations, including getaddrinfo
 
 // constants
-#define MAXBUF 10000      // 4K max buffer size
-#define SRVR_PORT "6666"  
+#define MAXBUF 10000      //max buffer size
+#define MAXPATH 500
+#define SRVR_PORT "6666"  // Server port recieving data from
 
 int main(int argc, char *argv[]) {
 	
     int sockfd;			 
     struct addrinfo hints, *servinfo, *p; // Address structure and pointers to them
     int rv, nbytes, nread;	  
-	char buf[MAXBUF];    
-	char newbuf[MAXBUF]; 
-
-    if (argc != 3) {
+    char buf[MAXBUF];    
+    char newbuf[MAXBUF]; 
+	
+			// Handles with any incorrect input formats
+    if (argc != 3) {								
         fprintf(stderr,"ERROR! Correct Usage is: ./program_name server userid\n"
 		        "Where,\n    server = server_name or ip_address, and\n"
-		        "    userid = your LDAP (VU) userid\n");
+		        "    userid = your userid\n");
         exit(1);
     }
 
 	
-    memset(&hints, 0, sizeof hints); 
+    memset( &hints, 0, sizeof hints); 
     hints.ai_family = AF_UNSPEC;     // AF_UNSPEC means IPv4 or IPv6, either is fine
     hints.ai_socktype = SOCK_DGRAM;  // SOCK_DGRAM is UDP
 
@@ -42,11 +44,10 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return 1;
     }
-
-    
+  
 	// SOCKET CALL: pointer p is pointing to address structures
 	//	        and first node in linked list with valid address.
-	//		Does until error or end of list, p->NULL
+	//		Does this until error or end of list, p->NULL
     for(p = servinfo; p != NULL; p = p->ai_next) {
         if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
             perror("CLIENT: socket");
@@ -72,24 +73,24 @@ int main(int argc, char *argv[]) {
 	// Recv packet from server. This iterates through each packet from the server, and adds
 	// each to a buffer called 'buf'. 'buf' is then written into a file 'fp' until all data is written.
 	
-	int i = 0;				// counter variable for while loop
+	int i = 0;				// Counter variable for while loop
 
-	char path[300];								//dynamically write to a file
-	char fileName[300];
-	char thisPath[300] = "/home/ubuntu/Desktop/udp_client/data_files/";
+	char path[MAXPATH];				// Dynamically write to a file
+	char fileName[MAXPATH];
+	char thisPath[MAXPATH] = "/home/ubuntu/Desktop/udp_client/data_files/";
 
-	strcpy( path, thisPath);
+	strcpy( path, thisPath);	// Copy "thisPath" to "path"
 
 	nread = recvfrom( sockfd, buf+(i*106), MAXBUF, 0, NULL, NULL);  //Grab the title of the file name in this loop and add it to path to write to
-	for( int k = 0; k<300; k++){
+	for( int k = 0; k<MAXPATH; k++){
 		fileName[k] = *(buf+(k)+4);
 	}
 
 	strcat( path, fileName);
-	FILE *fp = fopen( path, "w");	//reference and open the file to write to
+	FILE *fp = fopen( path, "w");	// Reference and open the file to write to
 
 	
-	char fileSize[MAXBUF];			//find the total file size to find number of packets for sorting
+	char fileSize[MAXBUF];			// Find the total file size to find number of packets for sorting
 	for( int j = 0; j < 4; j++){
 		
 		char numb = *(buf+j);
@@ -97,9 +98,9 @@ int main(int argc, char *argv[]) {
 	}
 	
 	int FILESIZE = atoi( fileSize);				
-	printf("\n FILESIZE %i \n\n", FILESIZE);	//debugging statement for total size of file
+	printf("\n FILESIZE %i \n\n", FILESIZE);	// Debugging statement for total size of file
 	
-	int numPackets = (FILESIZE / 100);			//divide by packet sizes and round up
+	int numPackets = (FILESIZE / 100);		// Divide by packet sizes and round up
 	if( FILESIZE % 100 != 0){
 		numPackets = numPackets + 1;
 	}
@@ -107,15 +108,15 @@ int main(int argc, char *argv[]) {
 	
 	i = 1;
 	
-	while( i <= numPackets ){			//iterate through with this loop until all packets recieved
+	while( i <= numPackets ){		// Iterate through with this loop until all packets recieved
 	
-		nread = recvfrom( sockfd, buf+(i*106), MAXBUF, 0, NULL, NULL);	//returns number of bytes in entire packet recieved
+		nread = recvfrom( sockfd, buf+(i*106), MAXBUF, 0, NULL, NULL);	// Return number of bytes in entire packet recieved
 		if (nread<0) {
 			perror("CLIENT: Problem in recvfrom");
 			exit(1);
 		}
 
-		if( write( STDOUT_FILENO, buf+(i*106)+6, nread-6) < 0) {	//compares and writes to buffer (unsorted)
+		if( write( STDOUT_FILENO, buf+(i*106)+6, nread-6) < 0) {	//Compares and writes to buffer (unsorted)
 			perror("CLIENT: Problem writing to stdout");
 			exit(1);
 		}
