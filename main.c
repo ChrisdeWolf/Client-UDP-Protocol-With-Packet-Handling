@@ -110,20 +110,20 @@ int main(int argc, char *argv[]) {
 	
 	while( i <= numPackets ){		// Iterate through with this loop until all packets recieved
 	
-		nread = recvfrom( sockfd, buf+(i*106), MAXBUF, 0, NULL, NULL);	// Return number of bytes in entire packet recieved
+		nread = recvfrom( sockfd, buf+(i*106), MAXBUF, 0, NULL, NULL);	// read in next packet data
 		if (nread<0) {
 			perror("CLIENT: Problem in recvfrom");
 			exit(1);
 		}
 
-		if( write( STDOUT_FILENO, buf+(i*106)+6, nread-6) < 0) {	//Compares and writes to buffer (unsorted)
+		if( write( STDOUT_FILENO, buf+(i*106)+6, nread-6) < 0) {	// Compares and writes data to buffer (unsorted)
 			perror("CLIENT: Problem writing to stdout");
 			exit(1);
 		}
 
 	//printf("\nRECIEVED %d BYTES\n\n", nread);	// debugging info
 		
-		char packetNum[3];				//pull out packet number data
+		char packetNum[3];				//pull out packet number data (first 3)
 		packetNum[0] = *(buf+(i*106));
 		packetNum[1] = *(buf+(i*106)+1);
 		packetNum[2] = '\0';
